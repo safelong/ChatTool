@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><?xml-stylesheet type='text/xsl' href='_UpgradeReport_Files/UpgradeReport.xslt'?><UpgradeLog>
+<Properties><Property Name="Solution" Value="ChatServer">
+</Property><Property Name="ソリューション ファイル" Value="D:\MyTest\ChatTool\ChatServer\ChatServer.sln">
+</Property><Property Name="ユーザー オプション ファイル" Value="D:\MyTest\ChatTool\ChatServer\ChatServer.suo">
+</Property><Property Name="Date" Value="2011年1月14日">
+</Property><Property Name="Time" Value="13:44">
+</Property></Properties><Event ErrorLevel="0" Project="" Source="ChatServer.sln" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\ChatServer.sln としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="" Source="ChatServer.suo" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\ChatServer.suo としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="ChatServer.csproj" Description="プロジェクト ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\ChatServer.csproj としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="ChatServer.csproj.user" Description="プロジェクト ユーザー ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\ChatServer.csproj.user としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="AssemblyInfo.cs" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\AssemblyInfo.cs としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="ChatServerForm.cs" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\ChatServerForm.cs としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="Client.cs" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\Client.cs としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="licenses.licx" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\licenses.licx としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="ChatServerForm.resx" Description="ファイルは正常に D:\MyTest\ChatTool\ChatServer\Backup\ChatServerForm.resx としてバックアップされました。">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="ChatServer.csproj" Description="プロジェクトは正常に変換されました。">
+</Event><Event ErrorLevel="3" Project="ChatServer" Source="ChatServer.csproj" Description="Converted">
+</Event><Event ErrorLevel="0" Project="" Source="ChatServer.sln" Description="ソリューションは正常に変換されました">
+</Event><Event ErrorLevel="3" Project="" Source="ChatServer.sln" Description="Converted">
+</Event><Event ErrorLevel="0" Project="ChatServer" Source="ChatServer.csproj" Description="スキャンが完了しました: プロジェクト ファイルにアップグレードは必要ありません。">
+</Event></UpgradeLog>

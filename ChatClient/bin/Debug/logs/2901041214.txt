@@ -1,0 +1,35 @@
+0023:.:0:3:14=48041e4b:16=47d21313:0023:.:0:3:14=48041e4b:16=47d21313:0023:.:0:3:14=48041e4b:16=47d21313:0033:ChatClient.cs:05E9B:1:14=466D4E0F:16=47d21313:using System;
+using System.Drawing;
+using System.Collections;
+using System.ComponentModel;
+using System.Windows.Forms;
+using System.Net;
+using System.Net.Sockets;
+using System.IO;
+using System.Threading;
+using System.Text;
+
+namespace ChatClient
+{
+	/// <summary>
+	/// Summary description for Form1.
+	/// </summary>
+	public class ChatClientForm : System.Windows.Forms.Form
+	{
+		private System.ComponentModel.Container components = null;
+		private System.Windows.Forms.TextBox ChatOut;
+		private System.Windows.Forms.Button btnConnect;
+		private System.Windows.Forms.Button btnSend;
+		private System.Windows.Forms.ListBox lbChatters;
+		private System.Windows.Forms.RichTextBox rtbChatIn;
+		private System.Windows.Forms.Button btnDisconnect;
+		private System.Windows.Forms.Button btnLog;
+		private System.Windows.Forms.CheckBox cbPrivate;
+		private System.Windows.Forms.TextBox User;
+		private System.Windows.Forms.TextBox IP;
+
+		private string clientname;        //用户名
+		private NetworkStream ns;         //网络流
+		private string serveraddress;     //服务器地址
+		private int serverport;           //端口号
+		private TcpClie

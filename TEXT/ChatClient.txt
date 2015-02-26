@@ -1,0 +1,294 @@
+using System;
+using System.Drawing;
+using System.Collections;
+using System.ComponentModel;
+using System.Windows.Forms;
+using System.Net;
+using System.Net.Sockets;
+using System.IO;
+using System.Threading;
+using System.Text;
+
+namespace ChatClient
+{
+	public class ChatClientForm : System.Windows.Forms.Form
+	{
+		private System.ComponentModel.Container components = null;
+		private System.Windows.Forms.TextBox ChatOut;
+		private System.Windows.Forms.Button btnConnect;
+		private System.Windows.Forms.Button btnSend;
+		private System.Windows.Forms.ListBox lbChatters;
+		private System.Windows.Forms.RichTextBox rtbChatIn;
+		private System.Windows.Forms.Button btnDisconnect;
+		private System.Windows.Forms.Button btnLog;
+		private System.Windows.Forms.CheckBox cbPrivate;
+		private System.Windows.Forms.TextBox User;
+		private System.Windows.Forms.TextBox IP;
+
+		private string clientname;        //用户名
+		private NetworkStream ns;         //网络流
+		private string serveraddress;     //服务器地址
+		private int serverport;           //端口号
+		private TcpClient clientsocket;   //TCP连接
+		private IPEndPoint ipendpoint;    //服务器端点
+		private Thread receive = null;    //线程
+
+		private bool connected = false;   //是否已连接到服务器
+		private bool privatemode = false; //是否进行私聊
+		private bool logging = false;     //是否进行日志读写
+
+		private StreamWriter logwriter;   //日志读写
+		string serverresponse;            // 服务器应答信息
+		Byte[] buffer = new Byte[2048];   // 接收数据缓冲区
+		private System.Windows.Forms.Label label4;
+		private System.Windows.Forms.Label label1;
+		private System.Windows.Forms.Label label2;
+		private System.Windows.Forms.Label statusBar1;
+		private System.Windows.Forms.Label label3;
+
+		public ChatClientForm()
+		{
+			InitializeComponent();
+			serverport = 5555;
+			btnDisconnect.Enabled = false;     //断开按钮不可用
+			btnSend.Enabled = false;           //发送按钮不可用
+		}
+		protected override void Dispose( bool disposing )
+		{
+			if( disposing )	if (components != null) components.Dispose();
+			base.Dispose( disposing );
+		}
+		protected override void OnClosed(EventArgs e)    //重写关闭方法
+		{	QuitChat();                              //退出聊天
+			if(receive != null && receive.IsAlive) receive.Abort();      //如果有活动线程则不关闭线程
+			base.OnClosed(e);                            //执行基类的关闭方法
+		}
+		private void ServerConnection()                  //连接到服务器方法
+		{
+			statusBar1.Text = "连接到服务器";
+			try{	//把IP.Text输入的IP地址字符串转换为IPAddress格式;
+				IPAddress myIP=IPAddress.Parse (IP.Text); 
+				serveraddress=IP.Text;
+				ipendpoint=new IPEndPoint(myIP,serverport);   //服务器端点
+				clientsocket = new TcpClient(ipendpoint);     //建立TCP连接
+			}
+			catch{
+				clientsocket = new TcpClient();
+				clientsocket.Connect(serveraddress,serverport);     //建立TCP连接
+			}
+			try {	ns = clientsocket.GetStream();          // 通过clientsocket(TcpClient)与服务器传输信息
+				connected = true;                       // 已连接上
+			}
+			catch{
+				MessageBox.Show("不能连接到服务器","错误",MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+				statusBar1.Text = "断开";
+			}
+		}
+		private void RegisterWithServer()                    //用户注册到服务器
+		{
+			try{
+				string command = "CONN#" + clientname+"#";         // 连接命令  
+				Byte[] outbytes = System.Text.Encoding.Unicode.GetBytes(command.ToCharArray());
+				ns.Write(outbytes,0,outbytes.Length);             // 通过ns（socket）向服务器发送信息（字节流）
+				ns.Read(buffer,0,buffer.Length);                  //  通过ns（socket）从服务器读取信息到buffer中
+				serverresponse = System.Text.Encoding.Unicode.GetString(buffer); // 转换为Unicode格式
+				string[] tokens = serverresponse.Split(new Char[]{'#'});         // 将serverresponse以'#'分解成多个字符串
+				if(tokens[0] == "LIST")                           // 如果获取到用户列表则表示登陆成功，显示用户表
+				{	statusBar1.Text = "已登陆";
+					btnDisconnect.Enabled = true;
+					for(int n=1; n<tokens.Length-1; n++) lbChatters.Items.Add(tokens[n]);  // 显示用户表
+				}
+				this.Text = clientname + ": 登陆到服务器";         //设置窗体标题
+			}
+			catch
+			{	MessageBox.Show("登陆错误","错误",MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+			}
+		}
+		
+		private void ReceiveChat()                        //接收聊天信息
+		{
+			bool keepalive = true;                          // 保持活动状态
+			while (keepalive) 
+			{
+				ns.Read(buffer,0,buffer.Length);       // 通过ns从服务器读取信息到buffer中
+				serverresponse = System.Text.Encoding.Unicode.GetString(buffer);   //转换为Unicode格式
+				string[] tokens = serverresponse.Split(new Char[]{'#'});   // 将 serverresponse 按'#' 分解成多个字符串
+				if(logging)
+				{  string time=System.DateTime.Now.ToString();               // 取得系统时间   
+					logwriter.WriteLine(time);                            // 记录系统时间到文件中
+				}
+				switch(tokens[0])                    // 判断信息中的状态及命令
+				{   case "CHAT":                        //聊天
+						rtbChatIn.SelectionColor=Color.Blue;    //设置插入点为蓝色
+						rtbChatIn.AppendText(tokens[1]);     // 在聊天信息框中添加发言者用户名
+						rtbChatIn.AppendText("：");
+						rtbChatIn.SelectionColor=Color.Black;   //开始显示黑色字符
+						rtbChatIn.AppendText(tokens[2]);     // 在聊天信息框中增加聊天信息
+						rtbChatIn.AppendText("\r\n");           // 换行
+						if(logging)logwriter.WriteLine(tokens[1]+"："+tokens[2]);   // 如果需要记录日志则保存到文件
+						break;
+					case  "PRIV":                       //私聊
+						rtbChatIn.SelectionColor=Color.DarkRed;   //设置插入点为暗红色
+						rtbChatIn.AppendText(tokens[1]);
+						rtbChatIn.AppendText(" 私聊：");
+						rtbChatIn.SelectionColor=Color.Black;
+						rtbChatIn.AppendText(tokens[2]);
+						rtbChatIn.AppendText("\r\n");
+						if(logging)logwriter.WriteLine(tokens[1]+" 私聊："+tokens[2]);
+						break;
+					case   "JOIN":                      //上线
+						rtbChatIn.SelectionColor=Color.Red;
+						rtbChatIn.AppendText(tokens[1]);
+						rtbChatIn.AppendText(" 进入聊天室\r\n");
+						string newguy = tokens[1];
+						lbChatters.Items.Add(newguy);                    // 在用户列表中增加一个新用户
+						if(logging)logwriter.WriteLine(tokens[1]+" 加入聊天室");
+						break;
+					case    "GONE":                     //离线
+						rtbChatIn.SelectionColor=Color.Red;
+						rtbChatIn.AppendText(tokens[1]);
+						rtbChatIn.AppendText(" 离开聊天室\r\n");
+						if(logging)logwriter.WriteLine(tokens[1]+" 离开聊天室");
+						lbChatters.Items.Remove(tokens[1]);                // 在用户列表中删除该用户
+						break;
+					case    "QUIT":                    // 服务器关闭
+						ns.Close();                    // 关闭 ns（socket）
+						clientsocket.Close();          // 关闭 clientsocket(TcpClient)
+						keepalive = false;             // 不再活动
+						statusBar1.Text = "服务器关闭";
+						connected= false;              // 无连接
+						btnSend.Enabled = false;       // “发送”按钮无效
+						btnDisconnect.Enabled = false;  // “离线”按钮无效
+						lbChatters.Items.Clear();      // 清除用户列表
+						if(logging)logwriter.WriteLine("服务器关闭");
+						break;
+				}
+			}
+		}
+		private void QuitChat() 
+		{
+			if(connected) {
+				try{
+					string command = "GONE#" + clientname+"#";
+					Byte[] outbytes = System.Text.Encoding.Unicode.GetBytes(command.ToCharArray());
+					ns.Write(outbytes,0,outbytes.Length);            //通知服务器该用户要离线
+				}
+				catch(Exception ex){
+					MessageBox.Show(ex.ToString(),"错误",MessageBoxButtons.OK, MessageBoxIcon.Error);
+				}
+			}
+			if(logging)
+			{	StartStopLogging();                    // 停止日志记录
+				logwriter.Close();                     // 关闭 logwriter
+			}
+			this.Text = "聊天室";                     // 设置窗体标题
+		}
+		private void StartStopLogging() 
+		{
+			if(!logging){
+				if(!Directory.Exists("logs")) Directory.CreateDirectory("logs");// 如果不存在 logs 目录则建立该目录
+				string fname = "logs\\" + DateTime.Now.ToString("ddMMyyHHmm") + ".txt";   // 以时间命名日志文件名
+				logwriter = new StreamWriter(new FileStream(fname, FileMode.OpenOrCreate,FileAccess.Write)); 
+				logging = true;                             // 日志记录标志
+				btnLog.Text = "终止日志跟踪";               // 更改日志按钮标题
+				statusBar1.Text = "连接 - 日志跟踪";        // 更改状态信息
+			}
+			else{
+				logwriter.Close();                          // 关闭文件流 logwriter
+				logging = false;
+				btnLog.Text = "日志跟踪";
+				statusBar1.Text = "连接 - 日志关闭";
+			}
+		}
+
+		[STAThread]
+		static void Main()
+		{
+			ChatClientForm cf = new ChatClientForm();      // 产生新的窗体
+			cf.serveraddress = "localhost";      // 默认为本机
+			cf.IP.Text=cf.serveraddress;
+			Application.Run(cf);                    // 启动进程，运行程序
+		}
+
+		private void btnConnect_Click(object sender, System.EventArgs e)
+		{
+			if(User.Text.Trim() == "")                           // 如果用户名不能为空
+			{	MessageBox.Show("请输入你的昵称","错误",MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+				return;
+			}
+			clientname = User.Text.Trim();
+			clientname = clientname.Trim(new char[]{'\r','\n'});
+			ServerConnection();                // 连接到服务器 （TcpClient）
+			if(connected)                      // 如果连接成功
+			{	RegisterWithServer();          // 用户登陆
+				receive = new Thread(new ThreadStart(ReceiveChat));    // 创建新线程 receive
+				receive.Start();               // 启动新线程 receive
+				btnSend.Enabled = true;        // 允许发送
+				btnConnect.Enabled = false;    // 不允许电击“连接”按钮
+				btnDisconnect.Enabled=true;    // 允许电击“离线”按钮
+				ChatOut.Text = "";             // 清除 ChatOut
+				ChatOut.Focus();               // 设置 ChatOut 为当前输入焦点
+			}
+		}
+		private void btnSend_Click(object sender, System.EventArgs e)      // 信息发送
+		{
+			if (ChatOut.Text.Trim()=="")return;
+			try{
+				string command;
+				if(!privatemode){ command = "CHAT#" + clientname +"#"+ChatOut.Text + "#";  } // 构造聊天信息字符串
+				else{
+					if(lbChatters.SelectedIndex == -1){      // 如果没有选择用户
+						MessageBox.Show("请选择一个聊天用户","错误",MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+						return;
+					}
+					string destclient = lbChatters.SelectedItem.ToString();
+					command = "PRIV#" + clientname + "#" + ChatOut.Text + "#" + destclient + "#"; //构造私聊信息字符串
+				}
+					Byte[] outbytes = System.Text.Encoding.Unicode.GetBytes(command.ToCharArray());  // 转换为字节流
+					ns.Write(outbytes,0,outbytes.Length);                      // 发送给服务器
+					ChatOut.Text = "";
+					ChatOut.Focus();
+			}
+			catch(Exception ex)                    // 信息发送失败则离线
+			{	MessageBox.Show(ex.ToString(),"错误",MessageBoxButtons.OK, MessageBoxIcon.Error);
+				ns.Close();                        // 关闭ns
+				clientsocket.Close();
+				if(receive != null && receive.IsAlive) receive.Abort();    // 终止该线程
+				connected = false;
+				statusBar1.Text = "离线";
+			}
+		}
+		private void btnDisconnect_Click(object sender, System.EventArgs e)   // 离线
+		{
+			QuitChat();
+			ns.Close();
+			clientsocket.Close();
+			if(receive != null && receive.IsAlive) receive.Abort();   // 如果有活动进程则关闭它
+			btnDisconnect.Enabled = false;
+			btnConnect.Enabled = true;
+			btnSend.Enabled = false;
+			connected = false;
+			lbChatters.Items.Clear();
+			statusBar1.Text = "离线";
+		}
+		private void ChatOut_KeyPress(object sender, System.Windows.Forms.KeyPressEventArgs e)   // 定义热键
+			{
+			if(e.KeyChar == '\r')     // 如果是回车键并且网络已经连接则自动点击 btnSend 按钮
+				if(connected)	btnSend_Click(sender, e);
+		}
+		private void btnLog_Click(object sender, System.EventArgs e)     // 日志记录按钮
+		{	StartStopLogging();        
+		}
+		private void cbPrivate_CheckedChanged(object sender, System.EventArgs e)    // 私聊选项
+		{
+			if(cbPrivate.Checked)                  
+			{	privatemode = true;                   // 设置为私聊模式
+				lbChatters.SelectionMode = System.Windows.Forms.SelectionMode.One;   // 用户列表中可以选择一项
+			}
+			else{	privatemode = false;                  // 取消私聊模式
+				lbChatters.SelectionMode = System.Windows.Forms.SelectionMode.None;  // 不能选取用户
+			}
+		}
+
+	}
+}

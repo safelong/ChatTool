@@ -1,0 +1,2 @@
+D:\MyTest\ChatTool\ChatServer\obj\Debug\ChatServer.exe
+D:\MyTest\ChatTool\ChatServer\obj\Debug\ChatServer.pdb
